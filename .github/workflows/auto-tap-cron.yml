@@ -12,15 +12,26 @@ jobs:
     steps:
     - name: Call Supabase Auto Tap Cron
       run: |
-        curl -X POST \
+        echo "Calling auto-tap cron function..."
+        response=$(curl -s -X POST \
           -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
           -H "Content-Type: application/json" \
           -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-          "https://dbzixkwftyojksguisfb.supabase.co/functions/v1/auto-tap-cron-public" \
-          --fail \
-          --show-error \
+          "https://dbzixkwftyojksguisfb.supabase.co/functions/v1/auto-tap-cron-jwt-free" \
           --max-time 30 \
-          || echo "Auto tap cron failed or no active sessions"
+          --write-out "HTTPSTATUS:%{http_code}" || echo "HTTPSTATUS:000")
+        
+        http_code=$(echo "$response" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
+        response_body=$(echo "$response" | sed 's/HTTPSTATUS:[0-9]*$//')
+        
+        echo "HTTP Status: $http_code"
+        echo "Response: $response_body"
+        
+        if [ "$http_code" = "200" ]; then
+          echo "✅ Auto-tap cron executed successfully"
+        else
+          echo "❌ Auto-tap cron failed with status $http_code"
+        fi
     
     - name: Log completion
-      run: echo "Auto tap cron job completed at $(date)"
+      run: echo "🎯 Auto tap cron job completed at $(date)"
